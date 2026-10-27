@@ -1,0 +1,259 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="robots" content="noindex, nofollow">
+<title>あなた専用の道具</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Zen+Kaku+Gothic+New:wght@400;500;700;900&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --paper:#FBFBF9; --ink:#1A1C22; --pencil:#5C6170; --mute:#9A9EAB; --line:#E4E5EA;
+    --ai:#2440B3; --ai-soft:#EEF1FB; --ng:#B42318; --star:#E8A317;
+  }
+  * { box-sizing:border-box; }
+  html, body { margin:0; height:100%; }
+  body { background-color:var(--paper); background-image:linear-gradient(rgba(36,64,179,.055) 1px, transparent 1px), linear-gradient(90deg, rgba(36,64,179,.055) 1px, transparent 1px); background-size:20px 20px; color:var(--ink); font-family:"Zen Kaku Gothic New",-apple-system,"Hiragino Sans",sans-serif; -webkit-font-smoothing:antialiased; }
+  button, input, textarea { font:inherit; }
+
+  /* 道具（画面いっぱい） */
+  #tool { position:fixed; inset:0 0 56px 0; width:100%; height:calc(100% - 56px); border:0; background:#fff; display:none; }
+  #tool.on { display:block; }
+
+  /* 下の帯 */
+  .bar { position:fixed; left:0; right:0; bottom:0; height:56px; padding:0 12px calc(env(safe-area-inset-bottom)) 16px; display:none; align-items:center; justify-content:space-between; gap:10px; background:rgba(251,251,249,.96); border-top:1px solid var(--line); backdrop-filter:blur(6px); }
+  .bar.on { display:flex; }
+  .bar .by { font-size:11px; color:var(--mute); line-height:1.35; min-width:0; }
+  .bar .by b { display:block; color:var(--pencil); font-weight:700; font-size:12px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .bar button { flex:none; border:none; border-radius:999px; padding:10px 16px; font-size:13px; font-weight:700; background:var(--ink); color:#fff; }
+
+  /* 状態の画面 */
+  .state { min-height:100%; display:none; align-items:center; justify-content:center; padding:32px 24px 48px; }
+  .state.on { display:flex; }
+  .card { width:100%; max-width:380px; }
+  .eyebrow { font-size:12px; letter-spacing:.14em; color:var(--ai); font-weight:700; }
+  h1 { margin:10px 0 0; font-size:26px; line-height:1.35; font-weight:900; letter-spacing:.01em; }
+  .lead { margin:12px 0 0; font-size:15px; line-height:1.8; color:var(--pencil); }
+  .maker { margin-top:28px; font-size:12px; color:var(--mute); }
+
+  /* 作成中の線画 */
+  .draw { margin:28px 0 4px; height:150px; border:1px solid var(--line); border-radius:14px; background:#fff; background-image:linear-gradient(var(--ai-soft) 1px, transparent 1px), linear-gradient(90deg, var(--ai-soft) 1px, transparent 1px); background-size:16px 16px; display:flex; align-items:center; justify-content:center; }
+  .draw svg { width:220px; height:120px; fill:none; stroke:var(--ai); stroke-width:1.4; stroke-linecap:round; }
+  .draw .d { stroke-dasharray:400; stroke-dashoffset:400; animation:draw 3.2s ease-in-out infinite; }
+  .draw .d2 { animation-delay:.5s; } .draw .d3 { animation-delay:1s; } .draw .d4 { animation-delay:1.5s; }
+  @keyframes draw { 0% { stroke-dashoffset:400; } 55%,80% { stroke-dashoffset:0; } 100% { stroke-dashoffset:-400; } }
+  .wait { font-size:13px; color:var(--mute); }
+
+  /* フォーム */
+  label { display:block; margin-top:18px; font-size:13px; font-weight:700; color:var(--pencil); }
+  label small { font-weight:400; color:var(--mute); margin-left:6px; }
+  input[type=text], textarea { width:100%; margin-top:6px; padding:12px 14px; border:1px solid var(--line); border-radius:10px; background:#fff; font-size:16px; color:var(--ink); }
+  textarea { min-height:84px; resize:vertical; }
+  input:focus, textarea:focus { outline:none; border-color:var(--ai); }
+  .primary { display:block; width:100%; margin-top:20px; padding:15px; border:none; border-radius:10px; background:var(--ai); color:#fff; font-size:16px; font-weight:700; }
+  .primary:disabled { opacity:.5; }
+  .err { margin-top:10px; font-size:13px; color:var(--ng); min-height:1em; }
+
+  /* 感想シート */
+  .sheet { position:fixed; left:0; right:0; bottom:0; z-index:10; max-height:92%; overflow:auto; background:var(--paper); border-radius:20px 20px 0 0; box-shadow:0 -8px 30px rgba(0,0,0,.14); padding:22px 20px calc(22px + env(safe-area-inset-bottom)); transform:translateY(105%); transition:transform .35s ease; }
+  .sheet.on { transform:none; }
+  .shade { position:fixed; inset:0; z-index:9; background:rgba(26,28,34,.28); opacity:0; pointer-events:none; transition:opacity .3s; }
+  .shade.on { opacity:1; pointer-events:auto; }
+  .sheet h2 { margin:0; font-size:19px; }
+  .sheet .lead { font-size:13px; margin-top:6px; }
+  .stars { display:flex; gap:6px; margin-top:8px; }
+  .stars button { width:44px; height:44px; border:none; background:none; padding:0; }
+  .stars svg { width:34px; height:34px; fill:#fff; stroke:var(--line); stroke-width:1.5; stroke-linejoin:round; transition:fill .15s, stroke .15s; }
+  .stars button.on svg { fill:var(--star); stroke:var(--star); }
+  .close { position:absolute; top:16px; right:14px; border:none; background:none; font-size:14px; color:var(--pencil); padding:6px; }
+  .sheet h2 { padding-right:56px; }
+  .thanks { text-align:center; padding:26px 0 8px; }
+  .thanks b { display:block; font-size:19px; }
+  .thanks p { margin:10px 0 0; font-size:14px; color:var(--pencil); line-height:1.8; }
+</style>
+</head>
+<body>
+
+<!-- 作成中 -->
+<section class="state" id="s-making">
+  <div class="card">
+    <div class="eyebrow">MAKING</div>
+    <h1>あなた専用の道具を、<br>AIがいま作っています。</h1>
+    <p class="lead">できあがると、このページに自動で表示されます。閉じても大丈夫です。同じQRコードを開き直せば見られます。</p>
+    <div class="draw" aria-hidden="true">
+      <svg viewBox="0 0 220 120">
+        <rect class="d" x="70" y="6" width="80" height="108" rx="10"/>
+        <line class="d d2" x1="82" y1="28" x2="138" y2="28"/>
+        <rect class="d d3" x="82" y="40" width="56" height="26" rx="4"/>
+        <line class="d d4" x1="82" y1="80" x2="120" y2="80"/>
+        <rect class="d d4" x="82" y="90" width="56" height="14" rx="4"/>
+      </svg>
+    </div>
+    <div class="wait" id="wait-note">確認しています…</div>
+    <div class="maker" data-maker></div>
+  </div>
+</section>
+
+<!-- 期限切れ -->
+<section class="state" id="s-expired">
+  <div class="card">
+    <div class="eyebrow">EXPIRED</div>
+    <h1>この道具の公開期間は<br>終わりました。</h1>
+    <p class="lead" id="exp-lead">「<span id="exp-title"></span>」をまた使いたい場合は、延長を依頼できます。作った人に届き、確認でき次第ご連絡します。</p>
+    <form id="extend-form" novalidate>
+      <label for="ex-name">お名前</label>
+      <input type="text" id="ex-name" autocomplete="name" maxlength="40">
+      <label for="ex-contact">ご連絡先<small>メール・LINE ID・電話など</small></label>
+      <input type="text" id="ex-contact" maxlength="100">
+      <label for="ex-comment">ひとこと<small>なくても大丈夫です</small></label>
+      <textarea id="ex-comment" maxlength="300"></textarea>
+      <button class="primary" type="submit" id="ex-send">延長を依頼する</button>
+      <div class="err" id="ex-err"></div>
+    </form>
+    <div class="thanks" id="ex-done" hidden><b>依頼を受け付けました。</b><p>確認でき次第、いただいたご連絡先にご連絡します。</p></div>
+    <div class="maker" data-maker></div>
+  </div>
+</section>
+
+<!-- うまくいかなかった・見つからない -->
+<section class="state" id="s-msg">
+  <div class="card">
+    <div class="eyebrow" id="msg-eyebrow">SORRY</div>
+    <h1 id="msg-title"></h1>
+    <p class="lead" id="msg-lead"></p>
+    <div class="maker" data-maker></div>
+  </div>
+</section>
+
+<!-- 完成した道具 -->
+<iframe id="tool" title="あなた専用の道具" sandbox="allow-scripts allow-forms allow-modals allow-popups allow-downloads"></iframe>
+<div class="bar" id="bar">
+  <div class="by"><b id="bar-title"></b><span data-maker></span></div>
+  <button type="button" onclick="openSheet()">感想を送る</button>
+</div>
+
+<div class="shade" id="shade" onclick="closeSheet()"></div>
+<div class="sheet" id="sheet" role="dialog" aria-labelledby="fb-h">
+  <button class="close" type="button" onclick="closeSheet()">閉じる</button>
+  <div id="fb-body">
+    <h2 id="fb-h">使ってみて、いかがでしたか？</h2>
+    <p class="lead">いただいた感想は、作った人に届きます。次の道具づくりにも活かします。</p>
+    <form id="fb-form" novalidate>
+      <label>使いやすさ</label>
+      <div class="stars" id="stars"></div>
+      <label for="fb-comment">感想<small>なくても大丈夫です</small></label>
+      <textarea id="fb-comment" maxlength="500" placeholder="例：もっと○○ができたら仕事で使いたい"></textarea>
+      <label for="fb-name">お名前<small>なくても大丈夫です</small></label>
+      <input type="text" id="fb-name" autocomplete="name" maxlength="40">
+      <button class="primary" type="submit" id="fb-send">送る</button>
+      <div class="err" id="fb-err"></div>
+    </form>
+  </div>
+  <div class="thanks" id="fb-done" hidden><b>ありがとうございます。</b><p>感想は作った人に届きました。</p></div>
+</div>
+
+<script>
+  /* 生成側（GAS）の窓口 */
+  var API = 'https://script.google.com/macros/s/AKfycbyHpGF3msxyXp-rFxGwQpOL0xF2r10GKsVT--4I6v8pJHZcyHHaz-Yiprt88LQBn-oSjQ/exec';
+  var id = new URLSearchParams(location.search).get('id') || '';
+  var pollTimer = null, polls = 0, stars = 0;
+
+  function $(x) { return document.getElementById(x); }
+  function show(name) {
+    ['s-making', 's-expired', 's-msg'].forEach(function (s) { $(s).classList.toggle('on', s === name); });
+  }
+  function setMaker(name) {
+    document.querySelectorAll('[data-maker]').forEach(function (e) { e.textContent = '作成：' + (name || '平川 徹'); });
+  }
+  function message(title, lead, eyebrow) {
+    $('msg-title').innerHTML = title; $('msg-lead').textContent = lead; $('msg-eyebrow').textContent = eyebrow || 'SORRY';
+    show('s-msg');
+  }
+
+  function load() {
+    if (!/^[\w-]{8,64}$/.test(id)) { setMaker(); message('ページが見つかりません。', 'QRコードをもう一度読み取ってください。', 'NOT FOUND'); return; }
+    fetch(API + '?api=job&id=' + encodeURIComponent(id), { cache: 'no-store' })
+      .then(function (r) { return r.json(); })
+      .then(render)
+      .catch(function () {
+        if (polls++ < 3) { setTimeout(load, 3000); return; }
+        setMaker(); message('うまく読み込めませんでした。', '通信の状態を確かめて、ページを開き直してください。', 'OFFLINE');
+      });
+  }
+
+  function render(j) {
+    setMaker(j.maker);
+    clearTimeout(pollTimer);
+    if (j.status === '完成' && j.html) {
+      document.title = j.title || document.title;
+      $('bar-title').textContent = j.title || 'あなた専用の道具';
+      $('tool').srcdoc = j.html;
+      $('tool').classList.add('on'); $('bar').classList.add('on');
+      show('');
+      return;
+    }
+    if (j.status === '作成中') {
+      show('s-making');
+      polls++;
+      $('wait-note').textContent = polls > 60 ? '時間がかかっています。少し時間をおいて開き直してください。' : '5秒ごとに確認しています';
+      if (polls <= 60) pollTimer = setTimeout(load, 5000);
+      return;
+    }
+    if (j.status === 'expired') { $('exp-title').textContent = j.title || 'あなた専用の道具'; show('s-expired'); return; }
+    if (j.status === '失敗') { message('混雑のため、<br>うまく作れませんでした。', '申し訳ありません。AIが混み合っていて、道具を作りきれませんでした。', 'SORRY'); return; }
+    if (j.status === '対象外') { message('このお題では、<br>道具を作れませんでした。', '道具で解決しにくい内容だったため、作るのを見送りました。', 'SORRY'); return; }
+    message('ページが見つかりません。', 'QRコードをもう一度読み取ってください。', 'NOT FOUND');
+  }
+
+  function post(body) {
+    // text/plain で送ると、事前確認なしで GAS に届く
+    return fetch(API, { method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' }, body: JSON.stringify(body) })
+      .then(function (r) { return r.json(); });
+  }
+
+  /* 感想 */
+  (function () {
+    var box = $('stars');
+    for (var i = 1; i <= 5; i++) (function (n) {
+      var b = document.createElement('button'); b.type = 'button'; b.setAttribute('aria-label', '星' + n + 'つ');
+      b.innerHTML = '<svg viewBox="0 0 24 24"><path d="M12 2.8l2.8 5.8 6.3.9-4.6 4.4 1.1 6.3L12 17.2l-5.6 3 1.1-6.3L2.9 9.5l6.3-.9z"/></svg>';
+      b.onclick = function () { stars = n; box.querySelectorAll('button').forEach(function (x, k) { x.classList.toggle('on', k < n); }); };
+      box.appendChild(b);
+    })(i);
+  })();
+  function openSheet() { $('sheet').classList.add('on'); $('shade').classList.add('on'); }
+  function closeSheet() { $('sheet').classList.remove('on'); $('shade').classList.remove('on'); }
+  $('fb-form').addEventListener('submit', function (e) {
+    e.preventDefault();
+    if (!stars && !$('fb-comment').value.trim()) { $('fb-err').textContent = '星か感想のどちらかを入れてください。'; return; }
+    var b = $('fb-send'); b.disabled = true; b.textContent = '送っています…'; $('fb-err').textContent = '';
+    post({ action: 'feedback', id: id, stars: stars, comment: $('fb-comment').value, name: $('fb-name').value }).then(function (r) {
+      if (!r.ok) throw new Error(r.error);
+      $('fb-body').hidden = true; $('fb-done').hidden = false;
+      setTimeout(closeSheet, 2200);
+      document.querySelector('.bar button').textContent = '感想ありがとうございました'; document.querySelector('.bar button').disabled = true;
+    }).catch(function () {
+      $('fb-err').textContent = '送れませんでした。もう一度お試しください。';
+    }).then(function () { b.disabled = false; b.textContent = '送る'; });
+  });
+
+  /* 延長依頼 */
+  $('extend-form').addEventListener('submit', function (e) {
+    e.preventDefault();
+    var name = $('ex-name').value.trim(), contact = $('ex-contact').value.trim();
+    if (!name || !contact) { $('ex-err').textContent = 'お名前とご連絡先を入れてください。'; return; }
+    var b = $('ex-send'); b.disabled = true; b.textContent = '送っています…'; $('ex-err').textContent = '';
+    post({ action: 'extend', id: id, name: name, contact: contact, comment: $('ex-comment').value }).then(function (r) {
+      if (!r.ok) throw new Error(r.error);
+      $('extend-form').hidden = true; $('ex-done').hidden = false;
+    }).catch(function (err) {
+      $('ex-err').textContent = (err && err.message && /[ぁ-ん]/.test(err.message)) ? err.message : '送れませんでした。もう一度お試しください。';
+    }).then(function () { b.disabled = false; b.textContent = '延長を依頼する'; });
+  });
+
+  load();
+</script>
+</body>
+</html>
